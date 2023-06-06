@@ -668,7 +668,7 @@ static void startrx (u1_t rxmode) {
 }
 
 // get random seed from wideband noise rssi
-void radio_init () {
+uint8_t radio_init () {
     hal_disableIRQs();
 
     // manually reset radio
@@ -686,12 +686,17 @@ void radio_init () {
     // some sanity checks, e.g., read version number
     u1_t v = readReg(RegVersion);
 #ifdef CFG_sx1276_radio
-    ASSERT(v == 0x12 );
+    if (v != 0x12) {
+        lmic_printf("Invalid radio version number: Expected 0x12, got 0x%x. Aborting.\n", v);
 #elif CFG_sx1272_radio
-    ASSERT(v == 0x22);
+    if (v != 0x22) {
+        lmic_printf("Invalid radio version number: Expected 0x22, got 0x%x. Aborting.\n", v);
 #else
 #error Missing CFG_sx1272_radio/CFG_sx1276_radio
 #endif
+        hal_enableIRQs();
+        return 0;
+    }
     // seed 15-byte randomness via noise rssi
     rxlora(RXMODE_RSSI);
     while( (readReg(RegOpMode) & OPMODE_MASK) != OPMODE_RX ); // continuous rx
@@ -726,6 +731,7 @@ void radio_init () {
     opmode(OPMODE_SLEEP);
 
     hal_enableIRQs();
+    return 1;
 }
 
 // return next random byte derived from seed buffer

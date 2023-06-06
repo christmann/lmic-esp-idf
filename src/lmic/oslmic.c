@@ -18,11 +18,14 @@ static struct {
     osjob_t* runnablejobs;
 } OS;
 
-void os_init () {
+uint8_t os_init () {
+	uint8_t ret = 0;
     memset(&OS, 0x00, sizeof(OS));
-    hal_init();
-    radio_init();
+    lmichal_init();
+    ret = radio_init();
+	if (!ret) { return ret; }
     LMIC_init();
+	return 1;
 }
 
 ostime_t os_getTime () {
