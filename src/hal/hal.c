@@ -16,7 +16,7 @@
 #include "freertos/task.h"
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
-#include "driver/timer.h"
+#include "driver/gptimer.h"
 #include "esp_log.h"
 
 #define TAG "lmic"
@@ -31,25 +31,17 @@ static void hal_io_init () {
     int i;
     ESP_LOGI(TAG, "Starting IO initialization");
 
-    gpio_config_t io_conf;
-    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
-    io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = 1<<lmic_pins.nss;
     if(lmic_pins.rst != LMIC_UNUSED_PIN) {
-        io_conf.pin_bit_mask |= 1<<lmic_pins.rst;
+        gpio_set_direction(lmic_pins.rst, GPIO_MODE_OUTPUT);
+        gpio_set_intr_type(lmic_pins.rst, GPIO_INTR_DISABLE);
     }
-    io_conf.pull_down_en = 0;
-    io_conf.pull_up_en = 0;
-    gpio_config(&io_conf);
 
-    io_conf.mode = GPIO_MODE_INPUT;
-    io_conf.pin_bit_mask = 0;
 	for(i = 0; i < NUM_DIO; i++) {
 		if(lmic_pins.dio[i] != LMIC_UNUSED_PIN) {
-			io_conf.pin_bit_mask |= (1ull << lmic_pins.dio[i]);
+            gpio_set_direction(lmic_pins.dio[i], GPIO_MODE_INPUT);
+            gpio_set_intr_type(lmic_pins.dio[i], GPIO_INTR_DISABLE);
 		}
 	}
-    gpio_config(&io_conf);
 
     ESP_LOGI(TAG, "Finished IO initialization");
 }
@@ -67,21 +59,14 @@ void hal_pin_nss (u1_t val) {
 
 // set radio RST pin to given value (or keep floating!)
 void hal_pin_rst (u1_t val) {
-    gpio_config_t io_conf;
-    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
-    io_conf.pin_bit_mask = (1<<lmic_pins.rst);
-    io_conf.pull_down_en = 0;
-    io_conf.pull_up_en = 0;
-
     if (lmic_pins.rst == LMIC_UNUSED_PIN)
         return;
 
     if(val == 0 || val == 1) { // drive pin
-        io_conf.mode = GPIO_MODE_OUTPUT;
-        gpio_config(&io_conf);
+		gpio_set_direction(lmic_pins.rst, GPIO_MODE_OUTPUT);
+		gpio_set_level(lmic_pins.rst, val);
     } else { // keep pin floating
-        io_conf.mode = GPIO_MODE_INPUT;
-        gpio_config(&io_conf);
+		gpio_set_direction(lmic_pins.rst, GPIO_MODE_INPUT);
     }
 }
 
@@ -154,32 +139,25 @@ u1_t hal_spi (u1_t data) {
 // -----------------------------------------------------------------------------
 // TIME
 
+gptimer_handle_t gptimer;
+
 static void hal_time_init () {
   ESP_LOGI(TAG, "Starting initialisation of timer");
-  int timer_group = TIMER_GROUP_0;
-  int timer_idx = TIMER_1;
-  timer_config_t config;
-  config.alarm_en = 0;
-  config.auto_reload = 0;
-  config.counter_dir = TIMER_COUNT_UP;
-  config.divider = 1600;
-  config.intr_type = 0;
-  config.counter_en = TIMER_PAUSE;
-  /*Configure timer*/
-  timer_init(timer_group, timer_idx, &config);
-  /*Stop timer counter*/
-  timer_pause(timer_group, timer_idx);
-  /*Load counter value */
-  timer_set_counter_value(timer_group, timer_idx, 0x0);
-  /*Start timer counter*/
-  timer_start(timer_group, timer_idx);
+  
+  gptimer_config_t timer_config = {
+    .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+    .direction = GPTIMER_COUNT_UP,
+    .resolution_hz = OSTICKS_PER_SEC
+  };
+  esp_err_t ret = gptimer_new_timer(&timer_config, &gptimer);
+  assert(ret == ESP_OK);
 
   ESP_LOGI(TAG, "Finished initalisation of timer");
 }
 
 u4_t hal_ticks () {
   uint64_t val;
-  timer_get_counter_value(TIMER_GROUP_0, TIMER_1, &val);
+  gptimer_get_raw_count(gptimer, &val);
   return (u4_t)val;
 }
 
@@ -249,7 +227,7 @@ void hal_printf_init() {
 }
 #endif // defined(LMIC_PRINTF_TO)
 
-void hal_init() {
+void lmichal_init() {
     // configure radio I/O and interrupt handler
     hal_io_init();
     // configure radio SPI
