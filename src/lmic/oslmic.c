@@ -49,7 +49,7 @@ void os_clearCallback (osjob_t* job) {
     hal_enableIRQs();
     #if LMIC_DEBUG_LEVEL > 1
         if (res)
-            lmic_printf("%u: Cleared job %p\n", os_getTime(), job);
+            lmic_printf("%lu: Cleared job %p\n", os_getTime(), job);
     #endif
 }
 
@@ -67,7 +67,7 @@ void os_setCallback (osjob_t* job, osjobcb_t cb) {
     *pnext = job;
     hal_enableIRQs();
     #if LMIC_DEBUG_LEVEL > 1
-        lmic_printf("%u: Scheduled job %p, cb %p ASAP\n", os_getTime(), job, cb);
+        lmic_printf("%lu: Scheduled job %p, cb %p ASAP\n", os_getTime(), job, cb);
     #endif
 }
 
@@ -92,7 +92,7 @@ void os_setTimedCallback (osjob_t* job, ostime_t time, osjobcb_t cb) {
     *pnext = job;
     hal_enableIRQs();
     #if LMIC_DEBUG_LEVEL > 1
-        lmic_printf("%u: Scheduled job %p, cb %p at %u\n", os_getTime(), job, cb, time);
+        lmic_printf("%lu: Scheduled job %p, cb %p at %lu\n", os_getTime(), job, cb, time);
     #endif
 }
 
@@ -125,7 +125,7 @@ void os_runloop_once() {
     hal_enableIRQs();
     if(j) { // run job callback
         #if LMIC_DEBUG_LEVEL > 1
-            lmic_printf("%u: Running job %p, cb %p, deadline %u\n", os_getTime(), j, j->func, has_deadline ? j->deadline : 0);
+            lmic_printf("%lu: Running job %p, cb %p, deadline %lu\n", os_getTime(), j, j->func, has_deadline ? j->deadline : 0);
         #endif
         j->func(j);
     }
