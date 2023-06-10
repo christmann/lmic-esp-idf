@@ -29,7 +29,7 @@ extern const lmic_pinmap lmic_pins;
 
 static void hal_io_init () {
     int i;
-    ESP_LOGI(TAG, "Starting IO initialization");
+    //ESP_LOGI(TAG, "Starting IO initialization");
 
     if(lmic_pins.rst != LMIC_UNUSED_PIN) {
         gpio_set_direction(lmic_pins.rst, GPIO_MODE_OUTPUT);
@@ -46,7 +46,7 @@ static void hal_io_init () {
     gpio_set_direction(lmic_pins.nss, GPIO_MODE_OUTPUT);
     gpio_set_intr_type(lmic_pins.nss, GPIO_INTR_DISABLE);
 
-    ESP_LOGI(TAG, "Finished IO initialization");
+    //ESP_LOGI(TAG, "Finished IO initialization");
 }
 
 // val == 1  => tx 1
@@ -95,7 +95,7 @@ static void hal_io_check() {
 spi_device_handle_t spi_handle;
 
 static void hal_spi_init () {
-    ESP_LOGI(TAG, "Starting SPI initialization");
+    //ESP_LOGI(TAG, "Starting SPI initialization");
     esp_err_t ret;
 
     // init master
@@ -121,7 +121,7 @@ static void hal_spi_init () {
     ret = spi_bus_add_device(LMIC_SPI, &devcfg, &spi_handle);
     assert(ret == ESP_OK);
 
-    ESP_LOGI(TAG, "Finished SPI initialization");
+    //ESP_LOGI(TAG, "Finished SPI initialization");
 }
 
 // perform SPI transaction with radio
@@ -155,7 +155,7 @@ static void hal_spi_check_irq() {
 gptimer_handle_t gptimer;
 
 static void hal_time_init () {
-  ESP_LOGI(TAG, "Starting initialisation of timer");
+  //ESP_LOGI(TAG, "Starting initialisation of timer");
   
   gptimer_config_t timer_config = {
     .clk_src = GPTIMER_CLK_SRC_DEFAULT,
@@ -169,7 +169,7 @@ static void hal_time_init () {
   ret = gptimer_start(gptimer);
   assert(ret == ESP_OK);
 
-  ESP_LOGI(TAG, "Finished initalisation of timer");
+  //ESP_LOGI(TAG, "Finished initalisation of timer");
 }
 
 u4_t hal_ticks () {
@@ -187,7 +187,7 @@ static s4_t delta_time(u4_t time) {
 
 void hal_waitUntil (u4_t time) {
 
-    ESP_LOGI(TAG, "Wait until");
+    //ESP_LOGI(TAG, "Wait until");
     s4_t delta = delta_time(time);
 
     while( delta > 2000){
@@ -196,7 +196,7 @@ void hal_waitUntil (u4_t time) {
     } if(delta > 0){
         vTaskDelay(delta / portTICK_PERIOD_MS);
     }
-    ESP_LOGI(TAG, "Done waiting until");
+    //ESP_LOGI(TAG, "Done waiting until");
 }
 
 // check and rewind for target time
