@@ -43,6 +43,9 @@ static void hal_io_init () {
 		}
 	}
 
+    gpio_set_direction(lmic_pins.nss, GPIO_MODE_OUTPUT);
+    gpio_set_intr_type(lmic_pins.nss, GPIO_INTR_DISABLE);
+
     ESP_LOGI(TAG, "Finished IO initialization");
 }
 
@@ -136,6 +139,16 @@ u1_t hal_spi (u1_t data) {
     return (u1_t) rxData;
 }
 
+static void hal_spi_check_irq() {
+    hal_pin_nss(0);
+    hal_spi(0x12); // RegIrqFlags
+    u1_t val = hal_spi(0x00);
+    hal_pin_nss(1);
+    if (val != 0) {
+        radio_irq_handler(0);
+    }
+}
+
 // -----------------------------------------------------------------------------
 // TIME
 
@@ -150,6 +163,10 @@ static void hal_time_init () {
     .resolution_hz = OSTICKS_PER_SEC
   };
   esp_err_t ret = gptimer_new_timer(&timer_config, &gptimer);
+  assert(ret == ESP_OK);
+  ret = gptimer_enable(gptimer);
+  assert(ret == ESP_OK);
+  ret = gptimer_start(gptimer);
   assert(ret == ESP_OK);
 
   ESP_LOGI(TAG, "Finished initalisation of timer");
@@ -204,7 +221,11 @@ void hal_enableIRQs () {
   //ESP_LOGD(TAG, "Enable interrupts");
   if(--x_irq_level == 0){
       //taskENABLE_INTERRUPTS();
-      hal_io_check();
+      if (lmic_pins.dio[0] != LMIC_UNUSED_PIN) {
+        hal_io_check();
+      } else {
+        hal_spi_check_irq();
+      }
   }
 }
 
